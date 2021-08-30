@@ -19,6 +19,7 @@
   "homepage": "https://github.com/h0ss3in88/simpleChat#readme",
   "dependencies": {
     "express": "^4.17.1",
+    "http": "0.0.1-security",
     "socket.io": "^4.2.0"
   }
 }
