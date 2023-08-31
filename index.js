@@ -15,6 +15,12 @@ const start = () => {
                 console.log(`#${socket.id} says : ${data}`);
                 socket.broadcast.emit('chat-message', JSON.stringify({ socketId : socket.id , message : data }));
             });
+            socket.on('is:typing', () => {
+                socket.broadcast.emit('typing', JSON.stringify({'socketId' : socket.id }));
+            });
+            socket.on('end:typing', () => {
+                socket.broadcast.emit('typing:ended', JSON.stringify({ 'socketId' : socket.id}));
+            });
             socket.on('disconnect', () => {
                 console.log(`socket #${socket.id} disconnected`);
             });

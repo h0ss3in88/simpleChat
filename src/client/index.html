@@ -4,34 +4,63 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/public/toastr/build/toastr.css">
+    <link rel="stylesheet" href="/public/bootstrap/dist/css/bootstrap.css">
     <title>Simple-Chat</title>
 </head>
 <body>
-    <div>
-        <div id="sidePanel"></div>
-        <div id="mainPanel">
-            <div id="chatFrame">
-                <ul id="messages"></ul>
+    <div class="container-sm">
+        <div class="row">
+            <div id="sidePanel" class="col"></div>
+            <div id="mainPanel" class="col">
+                <div id="chatFrame">
+                    <ul id="messages"></ul>
+                </div>
+                <div id="footer" class="col">
+                    <input id="chatValue" type="text" placeholder="type here ..." />
+                    <button id="submitBtn" type="button" class="btn btn-success">Send</button>
+                </div>
             </div>
-            <div id="footer">
-                <input id="chatValue" type="text" placeholder="type here ..." />
-                <button id="submitBtn" type="button">Send</button>
-            </div>
+    
         </div>
     </div>
     <script src="/public/socket.io/client-dist/socket.io.js"></script>
     <script src="/public/jquery/dist/jquery.js"></script>
+    <script src="/public/toastr/toastr.js"></script>
+    <script src="/public/bootstrap/dist/js/bootstrap.js"></script>
     <script type="text/javascript">
         $(() => {
             let socket = io();
+            toastr.options = {
+                progressBar : true 
+            }
+            toastr.success('application is ready');
             socket.on('chat-message', (data) => {
                 console.log(data);
                 console.log('received');
                 data = JSON.parse(data);
                 const messageReceived = `socket #${data.socketId} says : ${data.message}`;
+                toastr.success(messageReceived);
                 let $div = $('<li>', { id : `msg-${data.socketId}`}).text(messageReceived);
                 $('#messages').append($div);
                 window.scrollTo(0, document.body.scrollHeight);
+            });
+            socket.on('typing', (data) => {
+                data = JSON.parse(data);
+                const msg = `socket #${data.socketId} is typing ...`;
+                toastr.info(msg);
+                console.log(msg);
+            });
+            socket.on('typing:ended', (data) => {
+                data = JSON.parse(data);
+                const msg = `socket #${data.socketId} does not typing any more`;
+                toastr.warning(msg);
+                console.log(msg);
+            });
+            $('#chatValue').keydown((e) => {
+                socket.emit('is:typing');
+            }).blur((e) => {
+                socket.emit('end:typing');
             });
             $('#submitBtn').click((e) => {
                 e.preventDefault();
