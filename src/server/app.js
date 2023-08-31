@@ -1,13 +1,35 @@
 const express = require('express');
-const http = require('http');
-const path = require('path');
-let app = express();
-app.set('PORT', 3300);
-app.get('/', (req,res) => {
-    return res.status(200).sendFile(path.resolve(__dirname,'../','client','index.html'));
-});
+const logger = require('morgan');
+const compression = require('compression');
+const responseTime = require('response-time');
+const httpStatus = require('http-status');
 
-let server = http.createServer(app);
-server.listen(app.get('PORT'), () => {
-    console.log(`application running at ${server.address().address}:${server.address().port}`);
-});
+const createApp = () => {
+    return new Promise((resolve, reject) => {
+try {
+            let app = express();
+            app.use(compression());
+            app.use(logger('dev'));
+            app.use(responseTime());
+            app.get('/', (req,res,next) => {
+                return res.status(httpStatus.OK).json({'PING' : 'PONG'});
+            });
+            app.use((req,res,next) => {
+                let error = new Error('Not Found');
+                error.status = httpStatus.NOT_FOUND;
+                return next(error);
+            });
+            app.use((err,req,res,next) => {
+                if(err.status === 404) {
+                    return res.status(httpStatus.NOT_FOUND).json({ 'message' : 'not found'});
+                }else {
+                    return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ 'error' : err.message });
+                }
+            });
+            return resolve(app);
+} catch (error) {
+    return reject(error);
+}
+    });
+}
+module.exports = Object.assign({}, {createApp});
