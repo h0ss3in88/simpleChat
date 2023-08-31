@@ -11,8 +11,11 @@ const start = () => {
         let io = new Server(server);
         io.on("connection", (socket) => {
             console.log(`new socket #${socket.id} connected successfully `);
+            socket.on('message', (data) => {
+                console.log(`#${socket.id} says : ${data}`);
+            });
             socket.on('disconnect', () => {
-                console.log(`socket # ${socket.id} disconnected`);
+                console.log(`socket #${socket.id} disconnected`);
             });
         });
         server.listen(process.env.PORT || 6666, () => {

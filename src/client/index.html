@@ -17,9 +17,23 @@
             </div>
         </div>
     </div>
-    <script type="" src="/public/socket.io/client-dist/socket.io.js"></script>
+    <script src="/public/socket.io/client-dist/socket.io.js"></script>
+    <script src="/public/jquery/dist/jquery.js"></script>
     <script type="text/javascript">
-        let socket = io();
+        $(() => {
+            let socket = io();
+            $('#submitBtn').click((e) => {
+                e.preventDefault();
+                const msg = $('#chatValue').val();
+                if(msg.length !== 0 && msg !== undefined && msg !== null) {
+                    console.log(msg);
+                    socket.emit('message', msg);
+                    $('#chatValue').val(null);
+                }else {
+                    alert('enter value and try again');
+                }
+            });
+        });
     </script>
 </body>
 </html>
