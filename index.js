@@ -9,6 +9,12 @@ const start = () => {
         return server;
     }).then(server => {
         let io = new Server(server);
+        io.on("connection", (socket) => {
+            console.log(`new socket #${socket.id} connected successfully `);
+            socket.on('disconnect', () => {
+                console.log(`socket # ${socket.id} disconnected`);
+            });
+        });
         server.listen(process.env.PORT || 6666, () => {
             console.log(`Simple Chat is ready and running at : ${server.address().address} : ${server.address().port}`);
         });

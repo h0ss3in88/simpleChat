@@ -7,6 +7,19 @@
     <title>Simple-Chat</title>
 </head>
 <body>
-    simple Chat
+    <div>
+        <div id="sidePanel"></div>
+        <div id="mainPanel">
+            <div id="chatFrame"></div>
+            <div id="footer">
+                <input id="chatValue" type="text" placeholder="type here ..." />
+                <button id="submitBtn" type="button">Send</button>
+            </div>
+        </div>
+    </div>
+    <script type="" src="/public/socket.io/client-dist/socket.io.js"></script>
+    <script type="text/javascript">
+        let socket = io();
+    </script>
 </body>
 </html>
