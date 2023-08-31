@@ -13,6 +13,7 @@ const start = () => {
             console.log(`new socket #${socket.id} connected successfully `);
             socket.on('message', (data) => {
                 console.log(`#${socket.id} says : ${data}`);
+                socket.broadcast.emit('chat-message', JSON.stringify({ socketId : socket.id , message : data }));
             });
             socket.on('disconnect', () => {
                 console.log(`socket #${socket.id} disconnected`);

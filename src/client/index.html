@@ -10,7 +10,9 @@
     <div>
         <div id="sidePanel"></div>
         <div id="mainPanel">
-            <div id="chatFrame"></div>
+            <div id="chatFrame">
+                <ul id="messages"></ul>
+            </div>
             <div id="footer">
                 <input id="chatValue" type="text" placeholder="type here ..." />
                 <button id="submitBtn" type="button">Send</button>
@@ -22,6 +24,15 @@
     <script type="text/javascript">
         $(() => {
             let socket = io();
+            socket.on('chat-message', (data) => {
+                console.log(data);
+                console.log('received');
+                data = JSON.parse(data);
+                const messageReceived = `socket #${data.socketId} says : ${data.message}`;
+                let $div = $('<li>', { id : `msg-${data.socketId}`}).text(messageReceived);
+                $('#messages').append($div);
+                window.scrollTo(0, document.body.scrollHeight);
+            });
             $('#submitBtn').click((e) => {
                 e.preventDefault();
                 const msg = $('#chatValue').val();
