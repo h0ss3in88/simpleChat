@@ -12,6 +12,7 @@ const createApp = () => {
             let app = express();
             app.use(compression());
             app.use(logger('dev'));
+            app.use('/public', express.static(path.resolve(__dirname,'../','../', 'node_modules')));
             app.use(express.json());
             app.use(express.urlencoded({ extended : false }));
             app.use(responseTime());
