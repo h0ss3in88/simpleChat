@@ -18,7 +18,6 @@ const start = async () => {
                 username : socket.handshake.query.username,
                 socketId : socket.id
             }
-            console.log(user);
             db.run(`insert into users(username,socketid) values(?,?);`, [user.username,user.socketId]);
             socket.broadcast.emit('sockets:connected', JSON.stringify({ 'socketId' : socket.id}));
             let sockets = await io.sockets.fetchSockets();
@@ -27,32 +26,27 @@ const start = async () => {
             socket.on('message', (data) => {
                 console.log(`#${socket.id} says : ${data}`);
                 const sqlStmt = `select username from users where socketid = ? ;`;
-                db.get(sqlStmt, [socket.id], (err, row) => {
-                    if(err) {
-                        console.log(err);
-                    }else {
-                        socket.broadcast.emit('chat-message', JSON.stringify({ username : row.username , socketId : socket.id , message : data }));
-                   }
+                getUserNameBySocketId(socket.id).then(username => {
+                    socket.broadcast.emit('chat-message', JSON.stringify({ username : username , socketId : socket.id , message : data }));
+                }).catch(err => {
+                    console.log(err);
+                    throw new Error(err.message);
                 });
             });
             socket.on('is:typing', () => {
-                const sqlStmt = `select username from users where socketid = ? ;`;
-                db.get(sqlStmt, [socket.id], (err, row) => {
-                    if(err) {
-                        console.log(err);
-                    }else {
-                        socket.broadcast.emit('typing', JSON.stringify({'socketId' : socket.id , username : row.username }));
-                    }
+                getUserNameBySocketId(socket.id).then(username => {
+                    socket.broadcast.emit('typing', JSON.stringify({'socketId' : socket.id , username : username }));
+                }).catch(err => {
+                    console.log(err);
+                    throw new Error(err.message);
                 });
             });
             socket.on('end:typing', () => {
-                const sqlStmt = `select username from users where socketid = ? ;`;
-                db.get(sqlStmt, [socket.id], (err, row) => {
-                    if(err) {
-                        console.log(err);
-                    }else { 
-                        socket.broadcast.emit('typing:ended', JSON.stringify({ 'username' : row.username, 'socketId' : socket.id}));
-                    }
+                getUserNameBySocketId(socket.id).then(username => {
+                    socket.broadcast.emit('typing:ended', JSON.stringify({ 'username' : username, 'socketId' : socket.id}));
+                }).catch(err => {
+                    console.log(err);
+                    throw new Error(err.message);
                 });
             });
             socket.on('disconnect', () => {
@@ -73,6 +67,18 @@ const start = async () => {
     }).catch(err => {
         console.log(err);
     });
+    const getUserNameBySocketId = (socketId) => {
+        return new Promise((resolve, reject) => {
+            const sqlStmt = `select username from users where socketid = ? ;`;
+            db.get(sqlStmt, [socketId], (err, row) => {
+                if(err) {
+                    return reject(err);
+                }else { 
+                    return resolve(row.username);
+                }
+            });
+        });
+    }
 }
 
 start();
