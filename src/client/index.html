@@ -7,10 +7,19 @@
     <link rel="stylesheet" href="/public/toastr/build/toastr.css">
     <link rel="stylesheet" href="/public/bootstrap/dist/css/bootstrap.css">
     <title>Simple-Chat</title>
+    <style>
+        #chatMainSection {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <div class="container-sm">
-        <div class="row">
+        <div id="setUserNameDiv" class="row">
+            <input id="userNameInput" type="text" placeholder="username" />
+            <button id="setUsernameBtn" type="button" class="btn btn-success">send</button>
+        </div>
+        <div id="chatMainSection" class="row">
             <div id="sidePanel" class="col">
                 <ul id="users"></ul>
             </div>
@@ -32,69 +41,99 @@
     <script src="/public/bootstrap/dist/js/bootstrap.js"></script>
     <script type="text/javascript">
         $(() => {
-            let socket = io();
-            let currentSocketId;
-            socket.on('connect', () => {
-                currentSocketId = socket.id;
-                console.log(currentSocketId);
-                toastr.success('application is ready');
-            });
-            socket.on('connected:sockets', (data) => {
-                let sockets = JSON.parse(data).sockets;
-                let $lis = sockets.map(s => {
-                    return $('<li>',{ id: `socket-${s}`}).text(s);
+            $('#setUsernameBtn').click((e) => {
+                const url = `http://localhost:3600/api/accounts/users/get/username`;
+                fetch(url , {
+                    method: "POST",
+                    body: { username: $('#userNameInput').val() }
+                }).then(response => {
+                    return response.json();
+                }).then(result => {
+                    if(result.success) {
+                        console.log(result);
+                        initSocket();
+                        $('#chatMainSection').css('display', 'block');
+                        $('#setUserNameDiv').css('display', 'none');
+                    }
+                }).catch(err => {
+                    toastr.error(err);
                 });
-                $('#users').append($lis);
             });
-            toastr.options = {
-                progressBar : true 
-            }
-            socket.on('sockets:connected', (data) => {
-                let socketId = JSON.parse(data).socketId;
-                let $li = $('<li>',{ id: `socket-${socketId}`}).text(socketId);
-                $('#users').append($li);
-            });
-            socket.on('chat-message', (data) => {
-                console.log(data);
-                console.log('received');
-                data = JSON.parse(data);
-                const messageReceived = `socket #${data.socketId} says : ${data.message}`;
-                toastr.success(messageReceived);
-                let $div = $('<li>', { id : `msg-${data.socketId}`}).text(messageReceived);
-                $('#messages').append($div);
-                window.scrollTo(0, document.body.scrollHeight);
-            });
-            socket.on('typing', (data) => {
-                data = JSON.parse(data);
-                const msg = `socket #${data.socketId} is typing ...`;
-                toastr.info(msg);
-                console.log(msg);
-            });
-            socket.on('typing:ended', (data) => {
-                data = JSON.parse(data);
-                const msg = `socket #${data.socketId} does not typing any more`;
-                toastr.warning(msg);
-                console.log(msg);
-            });
-            $('#chatValue').keydown((e) => {
-                socket.emit('is:typing');
-            }).blur((e) => {
-                socket.emit('end:typing');
-            });
-            $('#submitBtn').click((e) => {
-                e.preventDefault();
-                const msg = $('#chatValue').val();
-                if(msg.length !== 0 && msg !== undefined && msg !== null) {
-                    console.log(msg);
-                    socket.emit('message', msg);
-                    $('#chatValue').val(null);
-                    let $div = $('<li>', { id : `msg-${currentSocketId}`}).text(`${currentSocketId} says : ${msg}`);
+            function initSocket() {
+                let socket = io({query: `username=${$('#userNameInput').val()}`});
+                let currentSocketId;
+                let currentUsername;
+                socket.on('connect', () => {
+                    currentSocketId = socket.id;
+                    currentUsername = $('#userNameInput').val();
+                    console.log(currentSocketId);
+                    console.log(currentUsername);
+                    toastr.success('application is ready');
+                });
+                socket.on('connected:sockets', (data) => {
+                    let sockets = JSON.parse(data).sockets;
+                    let $lis = sockets.map(s => {
+                        return $('<li>',{ id: `socket-${s}`}).text(s);
+                    });
+                    $('#users').append($lis);
+                });
+                toastr.options = {
+                    progressBar : true 
+                }
+                socket.on('sockets:connected', (data) => {
+                    let socketId = JSON.parse(data).socketId;
+                    let $li = $('<li>',{ id: `socket-${socketId}`}).text(socketId);
+                    $('#users').append($li);
+                });
+                socket.on('chat-message', (data) => {
+                    console.log(data);
+                    console.log('received');
+                    data = JSON.parse(data);
+                    const messageReceived = `${data.username} on socket #${data.socketId} says : ${data.message}`;
+                    toastr.success(messageReceived);
+                    let $div = $('<li>', { id : `msg-${data.socketId}`}).text(messageReceived);
                     $('#messages').append($div);
                     window.scrollTo(0, document.body.scrollHeight);
-                }else {
-                    toastr.error('enter value and try again');
-                }
-            });
+                });
+                socket.on('user:leave', (data) => {
+                    data = JSON.parse(data);
+                    const msg = `${data.username} on socket #${data.socketId} disconnected!`;
+                    toastr.error(msg);
+                    console.error(msg);
+                });
+                socket.on('typing', (data) => {
+                    data = JSON.parse(data);
+                    const msg = `${data.username} on socket #${data.socketId} is typing ...`;
+                    toastr.info(msg);
+                    console.log(msg);
+                });
+                socket.on('typing:ended', (data) => {
+                    data = JSON.parse(data);
+                    const msg = `socket #${data.socketId} does not typing any more`;
+                    toastr.warning(msg);
+                    console.log(msg);
+                });
+                $('#chatValue').keydown((e) => {
+                    socket.emit('is:typing');
+                }).blur((e) => {
+                    socket.emit('end:typing');
+                });
+                $('#submitBtn').click((e) => {
+                    e.preventDefault();
+                    const msg = $('#chatValue').val();
+                    if(msg.length !== 0 && msg !== undefined && msg !== null) {
+                        console.log(msg);
+                        socket.emit('message', msg);
+                        $('#chatValue').val(null);
+                        let $div = $('<li>', { id : `msg-${currentSocketId}`}).text(`${currentUsername} says : ${msg}`);
+                        $('#messages').append($div);
+                        console.log(`${currentUsername} on ${currentSocketId} says : ${msg}`);
+                        window.scrollTo(0, document.body.scrollHeight);
+                    }else {
+                        toastr.error('enter value and try again');
+                    }
+                });
+            }
         });
     </script>
 </body>
