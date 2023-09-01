@@ -9,8 +9,12 @@ const start = () => {
         return server;
     }).then(server => {
         let io = new Server(server);
-        io.on("connection", (socket) => {
+        io.on("connection", async (socket) => {
             console.log(`new socket #${socket.id} connected successfully `);
+            socket.broadcast.emit('sockets:connected', JSON.stringify({ 'socketId' : socket.id}));
+            let sockets = await io.sockets.fetchSockets();
+            sockets = sockets.map(s => s.id);
+            socket.emit('connected:sockets', JSON.stringify({sockets}));
             socket.on('message', (data) => {
                 console.log(`#${socket.id} says : ${data}`);
                 socket.broadcast.emit('chat-message', JSON.stringify({ socketId : socket.id , message : data }));

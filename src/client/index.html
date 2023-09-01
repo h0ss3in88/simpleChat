@@ -11,7 +11,9 @@
 <body>
     <div class="container-sm">
         <div class="row">
-            <div id="sidePanel" class="col"></div>
+            <div id="sidePanel" class="col">
+                <ul id="users"></ul>
+            </div>
             <div id="mainPanel" class="col">
                 <div id="chatFrame">
                     <ul id="messages"></ul>
@@ -31,10 +33,27 @@
     <script type="text/javascript">
         $(() => {
             let socket = io();
+            let currentSocketId;
+            socket.on('connect', () => {
+                currentSocketId = socket.id;
+                console.log(currentSocketId);
+                toastr.success('application is ready');
+            });
+            socket.on('connected:sockets', (data) => {
+                let sockets = JSON.parse(data).sockets;
+                let $lis = sockets.map(s => {
+                    return $('<li>',{ id: `socket-${s}`}).text(s);
+                });
+                $('#users').append($lis);
+            });
             toastr.options = {
                 progressBar : true 
             }
-            toastr.success('application is ready');
+            socket.on('sockets:connected', (data) => {
+                let socketId = JSON.parse(data).socketId;
+                let $li = $('<li>',{ id: `socket-${socketId}`}).text(socketId);
+                $('#users').append($li);
+            });
             socket.on('chat-message', (data) => {
                 console.log(data);
                 console.log('received');
@@ -69,8 +88,11 @@
                     console.log(msg);
                     socket.emit('message', msg);
                     $('#chatValue').val(null);
+                    let $div = $('<li>', { id : `msg-${currentSocketId}`}).text(`${currentSocketId} says : ${msg}`);
+                    $('#messages').append($div);
+                    window.scrollTo(0, document.body.scrollHeight);
                 }else {
-                    alert('enter value and try again');
+                    toastr.error('enter value and try again');
                 }
             });
         });
