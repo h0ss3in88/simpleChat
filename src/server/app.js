@@ -6,7 +6,7 @@ const httpStatus = require('http-status');
 const path = require('path');
 const {setupApi} = require('./api');
 
-const createApp = () => {
+const createApp = ({db}) => {
     return new Promise((resolve, reject) => {
         try {
             let app = express();
@@ -16,6 +16,15 @@ const createApp = () => {
             app.use(express.json());
             app.use(express.urlencoded({ extended : false }));
             app.use(responseTime());
+            app.use((req,res,next) => {
+               Object.defineProperty(req,'db', {
+                configurable: true,
+                writable: true,
+                enumerable: true,
+                value: db
+               });
+               return next();
+            });
             app.get('/', (req,res,next) => {
                 return res.status(httpStatus.OK).sendFile(path.resolve(__dirname, '../','client','index.html'));
             });
