@@ -25,16 +25,21 @@ const start = async () => {
             socket.emit('connected:sockets', JSON.stringify({sockets}));
             socket.on('message', (data) => {
                 console.log(`#${socket.id} says : ${data}`);
-                const sqlStmt = `select username from users where socketid = ? ;`;
-                getUserNameBySocketId(socket.id).then(username => {
-                    socket.broadcast.emit('chat-message', JSON.stringify({ username : username , socketId : socket.id , message : data }));
+                getUserNameBySocketId(socket.id).then(({username, id}) => {
+                    db.run(`insert into messages(content, userid, status) values(?,?,?);`, [data,id,'published'], (err) => {
+                        if(err) {
+                            socket.emit('message:error',err);
+                        }else {
+                            socket.broadcast.emit('chat-message', JSON.stringify({ username : username , socketId : socket.id , message : data }));
+                        }
+                    });
                 }).catch(err => {
                     console.log(err);
                     throw new Error(err.message);
                 });
             });
             socket.on('is:typing', () => {
-                getUserNameBySocketId(socket.id).then(username => {
+                getUserNameBySocketId(socket.id).then(({username}) => {
                     socket.broadcast.emit('typing', JSON.stringify({'socketId' : socket.id , username : username }));
                 }).catch(err => {
                     console.log(err);
@@ -42,7 +47,7 @@ const start = async () => {
                 });
             });
             socket.on('end:typing', () => {
-                getUserNameBySocketId(socket.id).then(username => {
+                getUserNameBySocketId(socket.id).then(({username}) => {
                     socket.broadcast.emit('typing:ended', JSON.stringify({ 'username' : username, 'socketId' : socket.id}));
                 }).catch(err => {
                     console.log(err);
@@ -69,12 +74,12 @@ const start = async () => {
     });
     const getUserNameBySocketId = (socketId) => {
         return new Promise((resolve, reject) => {
-            const sqlStmt = `select username from users where socketid = ? ;`;
+            const sqlStmt = `select id,username from users where socketid = ? ;`;
             db.get(sqlStmt, [socketId], (err, row) => {
                 if(err) {
                     return reject(err);
                 }else { 
-                    return resolve(row.username);
+                    return resolve({ username: row.username, id: row.id });
                 }
             });
         });
