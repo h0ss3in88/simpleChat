@@ -44,16 +44,25 @@
             $('#setUsernameBtn').click((e) => {
                 const url = `http://localhost:3600/api/accounts/users/get/username`;
                 fetch(url , {
+                    headers : {
+                        'Content-Type' : 'application/json',
+                        'Accept': 'application/json'
+                    },
                     method: "POST",
-                    body: { username: $('#userNameInput').val() }
-                }).then(response => {
-                    return response.json();
-                }).then(result => {
-                    if(result.success) {
-                        console.log(result);
-                        initSocket();
-                        $('#chatMainSection').css('display', 'block');
-                        $('#setUserNameDiv').css('display', 'none');
+                    body: JSON.stringify({ username: $('#userNameInput').val() })
+                }).then(async response => {
+                    if(response.status === 409) {
+                        const result = await response.json();
+                        toastr.error(result.message);
+                        $('#userNameInput').val('');
+                    }else if(response.status === 200){
+                        const result = await response.json();
+                        if(result.success) {
+                            console.log(result);
+                            initSocket();
+                            $('#chatMainSection').css('display', 'block');
+                            $('#setUserNameDiv').css('display', 'none');
+                        }   
                     }
                 }).catch(err => {
                     toastr.error(err);
