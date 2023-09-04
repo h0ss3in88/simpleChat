@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/h0ss3in88/simpleChat#readme",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "bootstrap": "^5.3.1",
     "compression": "^1.7.4",
     "dotenv": "^16.3.1",
@@ -31,7 +32,8 @@
     "response-time": "^2.3.2",
     "socket.io": "^4.2.0",
     "sqlite3": "^5.1.6",
-    "toastr": "^2.1.4"
+    "toastr": "^2.1.4",
+    "validator": "^13.11.0"
   },
   "devDependencies": {
     "@types/bootstrap": "^5.2.6",
