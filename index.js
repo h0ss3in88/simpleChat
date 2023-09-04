@@ -2,12 +2,14 @@ const http = require('http');
 const {Server} = require('socket.io');
 const {config} = require('dotenv');
 const {createApp} = require('./src/server/app');
-const {initDatabase} = require('./src/server/db');
+const {initDatabase, initRedisDb} = require('./src/server/db');
 const start = async () => {
     config();
     const options = { inMemory : process.env.SQL_LITE_IN_MEMORY};
+    const redisDbOptions = {};
     const db = await initDatabase({options});
-    createApp({db}).then(app => {
+    const redisDb = await initRedisDb({redisDbOptions});
+    createApp({db,redisDb}).then(app => {
         let server = http.createServer(app);
         return server;
     }).then(server => {

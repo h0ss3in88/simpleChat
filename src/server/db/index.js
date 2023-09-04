@@ -1,5 +1,26 @@
 const sqlite = require('sqlite3').verbose();
 const fs = require('fs');
+const {createClient} = require('redis');
+const initRedisDb = ({redisDbOptions}) => {
+    let client = null;
+    return new Promise((async (resolve, reject) => {
+        try {
+            if(client !== null && client !== undefined) {
+                return resolve(client);
+            }else {
+                client = redisDbOptions ? createClient({ url : redisDbOptions.connectionString }) : createClient();
+                client.on('error', err => { 
+                    console.log('Redis Client Error', err);
+                    return reject(err);
+                });
+                await client.connect();
+                return resolve(client);
+            }
+        }catch(err) {
+            return reject(err);
+        }
+    }));
+}
 const initDatabase = ({options}) => {
     return new Promise((resolve, reject) => {
         try {
@@ -29,4 +50,4 @@ const initDatabase = ({options}) => {
         }
     });
 };
-module.exports = Object.assign({}, {initDatabase});
+module.exports = Object.assign({}, {initDatabase, initRedisDb});

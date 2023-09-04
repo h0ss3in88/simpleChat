@@ -6,7 +6,7 @@ const httpStatus = require('http-status');
 const path = require('path');
 const {setupApi} = require('./api');
 
-const createApp = ({db}) => {
+const createApp = ({db, redisDb}) => {
     return new Promise((resolve, reject) => {
         try {
             let app = express();
@@ -18,10 +18,16 @@ const createApp = ({db}) => {
             app.use(responseTime());
             app.use((req,res,next) => {
                Object.defineProperty(req,'db', {
-                configurable: true,
-                writable: true,
-                enumerable: true,
-                value: db
+                    configurable: true,
+                    writable: true,
+                    enumerable: true,
+                    value: db
+               });
+               Object.defineProperty(req,'cache', {
+                    configurable : true,
+                    writable: true,
+                    enumerable: true,
+                    value: redisDb
                });
                return next();
             });
