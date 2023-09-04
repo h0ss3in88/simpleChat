@@ -1,7 +1,36 @@
 const {Router} = require('express');
 const httpStatus = require('http-status');
+const {Authentication} = require('../../services');
 
 let accountsRouter = Router();
+accountsRouter.post('/accounts/users/signup', async (req,res,next) => {
+    try {
+        const {email, password, confirmation} = req.body;
+        let auth = new Authentication({ db : req.cache });
+        let result = await auth.register({email, password, passwordConfirmation: confirmation });
+        if(result.success === true) {
+            return res.status(httpStatus.OK).json({ success : true, message: result.message });
+        }else {
+            return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ success : false, message: result.message });
+        }
+    }catch(err) {
+        return next(err);
+    }
+});
+accountsRouter.post('/accounts/users/login', async (req,res,next) => {
+    try {
+        const {email, password} = req.body;
+        let auth = new Authentication({ db : req.cache });
+        let result = await auth.login({ email, password });
+        if(result.success === true) {
+            return res.status(httpStatus.OK).json({ success: true, message : result.message });
+        }else {
+            return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ success : false, message: result.message });
+        }
+    }catch(err) {
+        return next(err);
+    }
+});
 accountsRouter.get('/accounts/users', (req,res,next) => {
     try{
         const selectStmt = `select id,username,socketid,joinat from users;`;
