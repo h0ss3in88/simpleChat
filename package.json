@@ -27,12 +27,15 @@
     "http": "0.0.1-security",
     "http-status": "^1.6.2",
     "jquery": "^3.7.1",
+    "mocha": "^10.2.0",
     "morgan": "^1.10.0",
     "redis": "^4.6.8",
     "response-time": "^2.3.2",
+    "should": "^13.2.3",
     "socket.io": "^4.2.0",
     "sqlite3": "^5.1.6",
     "toastr": "^2.1.4",
+    "uuid": "^9.0.0",
     "validator": "^13.11.0"
   },
   "devDependencies": {
