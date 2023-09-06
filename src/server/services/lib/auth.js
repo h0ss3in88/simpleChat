@@ -1,5 +1,6 @@
-const validator = require("validator");
-const bcrypt = require("bcryptjs");
+const validator = require('validator');
+const bcrypt = require('bcryptjs');
+const {v4} = require('uuid');
 class Authentication {
     constructor({db}) {
         this._db = db;
@@ -15,13 +16,14 @@ class Authentication {
                 // save new user to db
                 // return result 
                 if(this._validateEmail(email) && this._validatePassword(password) && this._checkPasswordMatched(password, passwordConfirmation)) {
-                    let isExists = await this._db.users.isEmailExists({email});
+                    let isExists = await this._db.get(`users:email:${email}`);
                     if(isExists) {
                         return reject(new Error("an user already exists in database by provided email"));
                     }else {
                         let generatedSalt = await bcrypt.genSalt(10);
                         let hashedPassword = await bcrypt.hash(password, generatedSalt);
                         let user = {
+                            id : v4(),
                             email,
                             hashedPassword,
                             profile : {
@@ -35,25 +37,29 @@ class Authentication {
                             created_at : Date.now(),
                             updated_at : Date.now()
                         };
-                        let createdUser = await this._db.users.createNewUser(user);
-                        if(createdUser !== undefined && createdUser !== null && validator.isMongoId(createdUser._id)){
+                        console.log(user);
+                        const result = Object.keys(user).map(async k => {
+                            return await client.hSet(`users:${user.id}`, k , user[k]);
+                        });
+                        await this._db.set(`users:email:${user.email}`, user.id);
+                        if(result.length === Object.keys(user).length && result !== undefined && result.every(v => v === 1)){
                             let result = {
                                 message : "user created successfully",
-                                userId : createdUser._id,
+                                userId : user._id,
                                 success : true
                             }
                             return resolve(result);
                         }else {
                             let result = {
-                                message : "user created successfully",
-                                userId : createdUser._id,
-                                success : true
+                                message : "operation was not successful",
+                                userId : null,
+                                success : false
                             }
                             return reject(new Error(result))
                         }
                     }
                 }else {
-                    return reject(new Error("invalid email and password!"));
+                  throw new Error("invalid email and password!");
                 }
             } catch (error) {
                 console.log(error);
@@ -71,19 +77,21 @@ class Authentication {
                 // update login count 
                 // return result 
                 if(this._validateEmail(email) && this._validatePassword(password)) {
-                    let emailExists = await this._db.users.isEmailExists({email});
+                    let emailExists = await this._db.get(`users:email:${email}`);
                     if(emailExists) {
-                        let user = await this._db.users.findUserByEmail({email});
+                        let userId = await this._db.get(`users:email:${email}`);
+                        let user = await this._db.getAll(`users:${userId}`);
                         let res = await bcrypt.compare(password, user.hashedPassword);
                         if(res === true) {
-                            user.loginCount++;
-                            user.lastLoginAt = Date.now();
-                            user.updated_at = Date.now();
-                            let updatedUser = await this._db.users.updateUser({user});
+                            const [incrReply, setLastLoginReply, setUpdatedAtReply ] = await this._db.multi()
+                                .hIncrBy(`users:${userId}`,'loginCount', 1)
+                                .hSet(`users:${userId}`, 'lastLoginAt', Date.now())
+                                .hSet(`users:${userId}`, 'updatedAt', Date.now())
+                                .exec();
                             return resolve({
                                 message : "user logged in successfully",
                                 success : true,
-                                userId : updatedUser._id
+                                userId : userId
                             });
                         }else {
                             return reject(new Error("invalid email and password!"));
