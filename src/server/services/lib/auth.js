@@ -81,7 +81,7 @@ class Authentication {
                     let emailExists = await this._db.get(`users:email:${email}`);
                     if(emailExists) {
                         let userId = await this._db.get(`users:email:${email}`);
-                        let user = await this._db.getAll(`users:${userId}`);
+                        let user = await this._db.hGetAll(`users:${userId}`);
                         let res = await bcrypt.compare(password, user.hashedPassword);
                         if(res === true) {
                             const [incrReply, setLastLoginReply, setUpdatedAtReply ] = await this._db.multi()
