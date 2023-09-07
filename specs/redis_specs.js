@@ -64,7 +64,7 @@ describe('redis key-value store', () => {
                 should(error).be.null();
             }
         });
-        it.only('register and login an user with local auth service successfully' ,async () => {
+        it('register an user with local auth service successfully' ,async () => {
             try {
                 const client = createClient();
                 await client.connect();
@@ -74,6 +74,21 @@ describe('redis key-value store', () => {
                 should(result).has.property('userId').not.be.null();
                 should(result).has.property('success', true);
                 should(result).has.property('message', 'user created successfully');
+            }catch(err) {
+                console.log(err);
+                should(err).be.null();
+            }
+        });
+        it('login an user with local auth service successfully' ,async () => {
+            try {
+                const client = createClient();
+                await client.connect();
+                client.on('error', err => console.log('Redis Client Error', err));
+                const auth = new Authentication({ db : client });
+                const result = await auth.login({ email : 'husseinTaherian67@gmail.com', password: 'testPassword@159753'});
+                should(result).has.property('userId').not.be.null();
+                should(result).has.property('success', true);
+                should(result).has.property('message', 'user logged in successfully');
             }catch(err) {
                 console.log(err);
                 should(err).be.null();
