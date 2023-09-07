@@ -34,18 +34,19 @@ class Authentication {
                             isActive : false,
                             loginCount : 0,
                             lastLoginAt: Date.now(),
-                            created_at : Date.now(),
-                            updated_at : Date.now()
+                            createdAt : Date.now(),
+                            updatedAt : Date.now()
                         };
-                        console.log(user);
-                        const result = Object.keys(user).map(async k => {
-                            return await client.hSet(`users:${user.id}`, k , user[k]);
-                        });
+                        console.log(user.id);
+                        const keys = Object.keys(user);
+                        let result = await this._insertObject(this._db, user, keys);
+                        console.log(result);
+                        console.log(result.length === Object.keys(user).length);
                         await this._db.set(`users:email:${user.email}`, user.id);
                         if(result.length === Object.keys(user).length && result !== undefined && result.every(v => v === 1)){
                             let result = {
                                 message : "user created successfully",
-                                userId : user._id,
+                                userId : user.id,
                                 success : true
                             }
                             return resolve(result);
@@ -115,6 +116,21 @@ class Authentication {
     }
     _validateEmail(email) {
         return email != undefined && email !== null && validator.contains(email, '@') && validator.isEmail(email);
+    }
+    _insertObject(db, obj, keys) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let result = keys.map(async k => {
+                    const setResult = await db.hSet(`users:${obj.id}`, k ,(obj[k]).constructor === ({}).constructor ? JSON.stringify(obj[k]) : obj[k].toString());
+                    return setResult;
+                });
+                Promise.all(result).then(x => {
+                    return resolve(x);
+                });
+            }catch(err) {
+                return reject(err);
+            }
+        });
     }
 
 }
