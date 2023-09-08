@@ -15,6 +15,10 @@
 </head>
 <body>
     <div class="container-sm">
+        <div id="accounts-section">
+            <button class="btn btn-success" id="loginBtn">Login</button>
+            <button class="btn btn-info" id="registerBtn">Register</button>
+        </div>
         <div id="setUserNameDiv" class="row">
             <input id="userNameInput" type="text" placeholder="username" />
             <button id="setUsernameBtn" type="button" class="btn btn-success">send</button>
@@ -41,6 +45,79 @@
     <script src="/public/bootstrap/dist/js/bootstrap.js"></script>
     <script type="text/javascript">
         $(() => {
+            $('#loginBtn').click((e) => {
+                e.preventDefault();
+                const $loginFormContent = $('<input id="signInEmailInput" type="text" placeholder="email" /><input type="password" id="signInPassInput" placeholder="password" /><button class="btn btn-success" id="signInBtn">Login</button>');
+                const $loginForm = $('<form>', {id: 'loginForm'}).append($loginFormContent);
+                let $div = $('<div>',{ id: `loginShowSection`}).append($loginForm);
+                $('#accounts-section').html($div);
+                $('#accounts-section').delegate('#signInBtn', 'click', (e) => {
+                    e.preventDefault();
+                    const email = $('#signInEmailInput').val();
+                    const password = $('#signInPassInput').val();
+
+                    console.log('sign in btn clicked');
+                    console.log(`Email : ${email} Password : ${password}`);
+
+                    
+                    const url = `http://localhost:3600/api//accounts/users/login`;
+                    fetch(url , {
+                        headers : {
+                            'Content-Type' : 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        method: "POST",
+                        body: JSON.stringify({ email, password })
+                    }).then(async response => {
+                        if(response.status === 200){
+                            const result = await response.json();
+                            if(result.success) {
+                                console.log(result);
+                                toastr.success(result.message);
+                            }   
+                        }
+                    }).catch(err => {
+                        toastr.error(err);
+                    });
+
+                });
+            });
+            $('#registerBtn').click((e) => {
+                e.preventDefault();
+                const $registerFormContent = $('<input type="text" id="signUpEmailInput" placeholder="email" /><input id="signUpPassInput" type="password" placeholder="password" /><input id="signUpPassConfirmInput" type="password" placeholder="repeat password" /><button class="btn btn-success" id="signUpBtn">Register</button>');
+                const $registerForm = $('<form>', {id: 'registerForm'}).append($registerFormContent);
+                let $div = $('<div>',{ id: `registerShowSection`}).append($registerForm);
+                $('#accounts-section').html($div);       
+                $('#accounts-section').delegate('#signUpBtn', 'click', (e) => {
+                    e.preventDefault();
+                    const email = $('#signUpEmailInput').val();
+                    const password = $('#signUpPassInput').val();
+                    const confirmation = $('#signUpPassConfirmInput').val();
+
+                    console.log('sign up btn clicked');
+                    console.log(`Email : ${email} Password : ${password} confirmation: ${confirm}`);
+
+                    const url = `http://localhost:3600/api/accounts/users/signup`;
+                    fetch(url , {
+                        headers : {
+                            'Content-Type' : 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        method: "POST",
+                        body: JSON.stringify({ email, password, confirmation })
+                    }).then(async response => {
+                        if(response.status === 200){
+                            const result = await response.json();
+                            if(result.success) {
+                                console.log(result);
+                                toastr.success(result.message);
+                            }   
+                        }
+                    }).catch(err => {
+                        toastr.error(err);
+                    });
+                });     
+            });
             $('#setUsernameBtn').click((e) => {
                 const url = `http://localhost:3600/api/accounts/users/get/username`;
                 fetch(url , {
