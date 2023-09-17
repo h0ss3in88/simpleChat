@@ -19,6 +19,9 @@
             <button class="btn btn-success" id="loginBtn">Login</button>
             <button class="btn btn-info" id="registerBtn">Register</button>
         </div>
+        <div id="token-section" style="display: none;">
+            <button id="signInWithToken" type="button" class="btn btn-danger">Login With Signed Cookie</button>
+        </div>
         <div id="setUserNameDiv" class="row">
             <input id="userNameInput" type="text" placeholder="username" />
             <button id="setUsernameBtn" type="button" class="btn btn-success">send</button>
@@ -36,7 +39,7 @@
                     <button id="submitBtn" type="button" class="btn btn-success">Send</button>
                 </div>
             </div>
-    
+
         </div>
     </div>
     <script src="/public/socket.io/client-dist/socket.io.js"></script>
@@ -66,6 +69,7 @@
                             'Content-Type' : 'application/json',
                             'Accept': 'application/json'
                         },
+                        withCredential : true,
                         method: "POST",
                         body: JSON.stringify({ email, password })
                     }).then(async response => {
@@ -73,6 +77,8 @@
                             const result = await response.json();
                             if(result.success) {
                                 console.log(result);
+                                $('#signInEmailInput').val('');
+                                $('#signInPassInput').val('');
                                 toastr.success(result.message);
                             }   
                         }
@@ -95,7 +101,7 @@
                     const confirmation = $('#signUpPassConfirmInput').val();
 
                     console.log('sign up btn clicked');
-                    console.log(`Email : ${email} Password : ${password} confirmation: ${confirm}`);
+                    console.log(`Email : ${email} Password : ${password} confirmation: ${confirmation}`);
 
                     const url = `http://localhost:3600/api/accounts/users/signup`;
                     fetch(url , {
@@ -110,6 +116,34 @@
                             const result = await response.json();
                             if(result.success) {
                                 console.log(result);
+                                $('#signUpEmailInput').val('');
+                                $('#signUpPassInput').val('');
+                                $('#signUpPassConfirmInput').val('');
+                                $('#accounts-section').css('display', 'none');
+                                $('#setUserNameDiv').css('display', 'none');
+                                $('#chatMainSection').css('display', 'block');
+                                $('#token-section').css('display', 'block');
+                                $('#token-section').delegate('#signInWithToken', 'click', (e) => {
+                                    e.preventDefault();
+                                    const signInUrl = 'http://localhost:3600/api/accounts/users/login/token';
+                                    fetch(signInUrl , {
+                                        headers : {
+                                            'Content-Type' : 'application/json',
+                                            'Accept': 'application/json'
+                                        },
+                                        credentials: "include",
+                                        method: "POST"
+                                    }).then(async response => {
+                                        if(response.status === 200) {
+                                            const result = await response.json();
+                                            console.log(result.token);
+                                            toastr.success(result.token);
+                                        }
+                                    }).catch(err => {
+                                        console.log(err);
+                                        toastr.error(err);
+                                    });
+                                });
                                 toastr.success(result.message);
                             }   
                         }
