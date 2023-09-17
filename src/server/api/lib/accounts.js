@@ -1,5 +1,7 @@
 const {Router} = require('express');
 const httpStatus = require('http-status');
+const jwt = require('jsonwebtoken');
+const dayJs = require('dayjs');
 const {Authentication} = require('../../services');
 
 let accountsRouter = Router();
@@ -9,11 +11,18 @@ accountsRouter.post('/accounts/users/signup', async (req,res,next) => {
         let auth = new Authentication({ db : req.cache });
         let result = await auth.register({email, password, passwordConfirmation: confirmation });
         if(result.success === true) {
-            return res.status(httpStatus.OK).json({ success : true, message: result.message });
+            console.log(req.privateKey);
+            const jwtToken = jwt.sign({ exp : Math.floor(Date.now()) + (60 * 60), data : {id: result.userId, email}}, req.privateKey, {algorithm: 'RS256'});
+            res.cookie('api-auth', jwtToken, {
+                secure: false,
+                httpOnly: true,
+            });
+            return res.status(httpStatus.OK).json({ success : true, message: result.message , userId : result.userId });
         }else {
             return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ success : false, message: result.message });
         }
     }catch(err) {
+        console.log(err);
         return next(err);
     }
 });
@@ -23,11 +32,40 @@ accountsRouter.post('/accounts/users/login', async (req,res,next) => {
         let auth = new Authentication({ db : req.cache });
         let result = await auth.login({ email, password });
         if(result.success === true) {
-            return res.status(httpStatus.OK).json({ success: true, message : result.message });
+            const jwtToken = jwt.sign({ exp : Math.floor(Date.now()) + (60 * 60),
+                 data : {id: result.userId, email}}, 
+                 req.privateKey, { algorithm: 'RS256'});
+            res.cookie('api-auth', jwtToken, {
+                secure: false,
+                httpOnly: true,
+                expires: dayJs().add(7, 'days').toDate()
+            });
+            return res.status(httpStatus.OK).json({ success: true, message : result.message , userId : result.userId });
         }else {
             return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ success : false, message: result.message });
         }
     }catch(err) {
+        console.log(err);
+        return next(err);
+    }
+});
+accountsRouter.post('/accounts/users/login/token', async (req,res,next) => {
+    try {
+        if(req && req.cookies) {
+            console.log(req.cookies['api-auth']);
+            if(req.cookies['api-auth']) {
+                let token = req.cookies['api-auth'];
+                const payload = jwt.verify(token, req.publicKey, { algorithms: 'RS256'});
+                console.log(payload);
+                return res.status(httpStatus.OK).json({
+                    token : req.cookies['api-auth']
+                });
+            }else {
+                return res.status(httpStatus.BAD_REQUEST).json({ success : false , message : 'Invalid Request'});
+            }
+        }
+    }catch(err) {
+        console.log(err);
         return next(err);
     }
 });
