@@ -4,6 +4,7 @@ const compression = require('compression');
 const responseTime = require('response-time');
 const httpStatus = require('http-status');
 const path = require('path');
+const cookieParser = require('cookie-parser');
 const {setupApi} = require('./api');
 
 const createApp = ({db, redisDb,publicKey, privateKey}) => {
@@ -16,6 +17,7 @@ const createApp = ({db, redisDb,publicKey, privateKey}) => {
             app.use(express.json());
             app.use(express.urlencoded({ extended : false }));
             app.use(responseTime());
+            app.use(cookieParser());
             app.use((req,res,next) => {
                Object.defineProperty(req,'db', {
                     configurable: true,
