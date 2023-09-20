@@ -79,6 +79,31 @@
                                 console.log(result);
                                 $('#signInEmailInput').val('');
                                 $('#signInPassInput').val('');
+                                                                $('#accounts-section').css('display', 'none');
+                                $('#setUserNameDiv').css('display', 'none');
+                                $('#chatMainSection').css('display', 'block');
+                                $('#token-section').css('display', 'block');
+                                $('#token-section').delegate('#signInWithToken', 'click', (e) => {
+                                    e.preventDefault();
+                                    const signInUrl = 'http://localhost:3600/api/accounts/users/login/token';
+                                    fetch(signInUrl , {
+                                        headers : {
+                                            'Content-Type' : 'application/json',
+                                            'Accept': 'application/json'
+                                        },
+                                        credentials: "include",
+                                        method: "POST"
+                                    }).then(async response => {
+                                        if(response.status === 200) {
+                                            const result = await response.json();
+                                            console.log(result.token);
+                                            toastr.success(result.token);
+                                        }
+                                    }).catch(err => {
+                                        console.log(err);
+                                        toastr.error(err);
+                                    });
+                                });
                                 toastr.success(result.message);
                             }   
                         }
