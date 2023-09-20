@@ -11,7 +11,7 @@ const start = async () => {
         if(generationKeysResult.success === true) {
             const {publicKey, privateKey} = generationKeysResult;
             const options = { inMemory : process.env.SQL_LITE_IN_MEMORY};
-            const redisDbOptions = {};
+            const redisDbOptions = {connectionString : process.env.REDIS_CONNECTION_STRING};
             const db = await initDatabase({options});
             const redisDb = await initRedisDb({redisDbOptions});
             createApp({db,redisDb,publicKey, privateKey}).then(app => {
