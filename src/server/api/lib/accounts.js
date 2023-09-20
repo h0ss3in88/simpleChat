@@ -1,6 +1,5 @@
 const {Router} = require('express');
 const httpStatus = require('http-status');
-const jwt = require('jsonwebtoken');
 const dayJs = require('dayjs');
 const {Authentication} = require('../../services');
 
@@ -11,9 +10,8 @@ accountsRouter.post('/accounts/users/signup', async (req,res,next) => {
         let auth = new Authentication({ db : req.cache });
         let result = await auth.register({email, password, passwordConfirmation: confirmation });
         if(result.success === true) {
-            console.log(req.privateKey);
-            const jwtToken = jwt.sign({ exp : Math.floor(Date.now()) + (60 * 60), data : {id: result.userId, email}}, req.privateKey, {algorithm: 'RS256'});
-            res.cookie('api-auth', jwtToken, {
+            console.log(`result Token : ${result.jwtToken}`);
+            res.cookie('api-auth', result.jwtToken, {
                 secure: false,
                 httpOnly: true,
             });
@@ -32,10 +30,7 @@ accountsRouter.post('/accounts/users/login', async (req,res,next) => {
         let auth = new Authentication({ db : req.cache });
         let result = await auth.login({ email, password });
         if(result.success === true) {
-            const jwtToken = jwt.sign({ exp : Math.floor(Date.now()) + (60 * 60),
-                 data : {id: result.userId, email}}, 
-                 req.privateKey, { algorithm: 'RS256'});
-            res.cookie('api-auth', jwtToken, {
+            res.cookie('api-auth', result.jwtToken, {
                 secure: false,
                 httpOnly: true,
                 expires: dayJs().add(7, 'days').toDate()
@@ -55,11 +50,15 @@ accountsRouter.post('/accounts/users/login/token', async (req,res,next) => {
             console.log(req.cookies['api-auth']);
             if(req.cookies['api-auth']) {
                 let token = req.cookies['api-auth'];
-                const payload = jwt.verify(token, req.publicKey, { algorithms: 'RS256'});
-                console.log(payload);
-                return res.status(httpStatus.OK).json({
-                    token : req.cookies['api-auth']
-                });
+                const auth = new Authentication({ db : req.cache });
+                const result = await auth.loginWithToken(token);
+                if(result.success) {
+                    console.log(result.payload);
+                    return res.status(httpStatus.OK).json({
+                        payLoad: result.payload,
+                        token : req.cookies['api-auth']
+                    });
+                }
             }else {
                 return res.status(httpStatus.BAD_REQUEST).json({ success : false , message : 'Invalid Request'});
             }
