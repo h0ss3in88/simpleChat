@@ -1,6 +1,8 @@
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const {v4} = require('uuid');
+const {generateRSAKeys} = require('./generateKeys');
 class Authentication {
     constructor({db}) {
         this._db = db;
@@ -14,6 +16,8 @@ class Authentication {
                 // check email already exists or not 
                 // encrypt password 
                 // save new user to db
+                // create key pair for user and save them in db 
+                // create jwt token 
                 // return result 
                 if(this._validateEmail(email) && this._validatePassword(password) && this._checkPasswordMatched(password, passwordConfirmation)) {
                     let isExists = await this._db.get(`users:email:${email}`);
@@ -43,11 +47,17 @@ class Authentication {
                         console.log(result);
                         console.log(result.length === Object.keys(user).length);
                         await this._db.set(`users:email:${user.email}`, user.id);
+                        const { privateKey, publicKey } = await generateRSAKeys();
+                        const keyId = v4();
+                        await this._db.set(`keyId:${keyId}`, JSON.stringify({ pub : publicKey, private : privateKey }));
+                        const jwtToken = jwt.sign({ exp : Math.floor(Date.now()) + (60 * 60), data : {id: user.id, email: user.email}}, 
+                            privateKey,{algorithm: 'RS256', header : { kid : keyId }});
                         if(result.length === Object.keys(user).length && result !== undefined && result.every(v => v === 1)){
                             let result = {
                                 message : "user created successfully",
                                 userId : user.id,
-                                success : true
+                                success : true,
+                                jwtToken
                             }
                             return resolve(result);
                         }else {
@@ -89,10 +99,16 @@ class Authentication {
                                 .hSet(`users:${userId}`, 'lastLoginAt', Date.now())
                                 .hSet(`users:${userId}`, 'updatedAt', Date.now())
                                 .exec();
+                                const { privateKey, publicKey } = await generateRSAKeys();
+                                const keyId = v4();
+                                await this._db.set(`keyId:${keyId}`, JSON.stringify({ pub : publicKey, private : privateKey }));
+                                const jwtToken = jwt.sign({ exp : Math.floor(Date.now()) + (60 * 60), data : {id: user.id, email: user.email}}, 
+                        privateKey,{algorithm: 'RS256', header : { kid : keyId }});
                             return resolve({
                                 message : "user logged in successfully",
                                 success : true,
-                                userId : userId
+                                userId : userId,
+                                jwtToken
                             });
                         }else {
                             return reject(new Error("invalid email and password!"));
@@ -105,6 +121,37 @@ class Authentication {
                 }
             } catch (error) {
                 return reject(new Error(error.message));
+            }
+        });
+    }
+    loginWithToken(token) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if(token !== null && token !== undefined) {
+                    let decodedToken = jwt.decode(token, {complete: true });
+                    console.log(decodedToken);
+                    if(decodedToken.header.kid !== null && decodedToken.header.kid !== undefined && decodedToken.header.kid) {
+                        const keyId = decodedToken.header.kid;
+                        let keys = await this._db.get(`keyId:${keyId}`);
+                        const {pub} = JSON.parse(keys);
+                        const payload = jwt.verify(token, pub, { algorithms: 'RS256'});
+                        const userId = await this._db.get(`users:email:${payload.data.email}`);
+                        if(userId) {
+                            return resolve({
+                                payload,
+                                success : true
+                            });
+                        }else {
+                            return reject(new Error('user not found!'));
+                        }
+                    }else {
+                        return reject(new Error('invalid Token'));
+                    }
+                }else {
+                    return reject(new Error('invalid token parameter'));
+                }
+            }catch(error) {
+                return reject(error);
             }
         });
     }
